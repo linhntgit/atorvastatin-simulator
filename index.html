@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Atorvastatin Simulation - First-Pass Metabolism Model</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <div class="app-container">
+        <header>
+            <div class="header-content">
+                <div class="logo">💊</div>
+                <div>
+                    <h1>Atorvastatin Pharmacokinetics</h1>
+                    <p>Simulating extensive hepatic first-pass metabolism, transporter kinetics, and tablet dissolution.</p>
+                </div>
+            </div>
+        </header>
+
+        <main class="main-content">
+            <section class="left-column">
+                <div class="card controls-card">
+                    <h2>Tablet State</h2>
+                    <p class="subtitle">Select the physical form of the tablet administered.</p>
+                    <div class="toggle-group">
+                        <button id="btn-full" class="toggle-btn active">Full Tablet</button>
+                        <button id="btn-half" class="toggle-btn">Broken in Half</button>
+                    </div>
+                    
+                    <div class="parameters-box">
+                        <h3>Pharmacokinetic Parameters</h3>
+                        <div class="param-row">
+                            <span>Dose (mg)</span> 
+                            <select id="dose-select" class="dose-select">
+                                <option value="10">10 mg</option>
+                                <option value="20">20 mg</option>
+                                <option value="40" selected>40 mg</option>
+                                <option value="80">80 mg</option>
+                            </select>
+                        </div>
+                        
+                        <div class="param-row input-row">
+                            <label for="input-vd">Volume of Dist. V<sub>d</sub> (L)</label>
+                            <input type="number" id="input-vd" class="pk-input" value="381" step="10">
+                        </div>
+                        <div class="param-row input-row">
+                            <label for="input-thalf">Elimination Half-life (hr)</label>
+                            <input type="number" id="input-thalf" class="pk-input" value="7.0" step="0.5">
+                        </div>
+                        <div class="param-row input-row">
+                            <label for="input-eh" title="Fraction of drug destroyed by liver before reaching circulation">Hepatic Extraction (E<sub>H</sub>)</label>
+                            <input type="number" id="input-eh" class="pk-input" value="0.84" step="0.01" min="0" max="0.99">
+                        </div>
+                        <div class="param-row input-row">
+                            <label for="input-vmax" title="Maximum transport velocity">Transporter V<sub>max</sub> (mg/hr)</label>
+                            <input type="number" id="input-vmax" class="pk-input" value="15" step="1">
+                        </div>
+                        <div class="param-row input-row">
+                            <label for="input-km" title="Michaelis constant">Transporter K<sub>m</sub> (mg)</label>
+                            <input type="number" id="input-km" class="pk-input" value="10" step="1">
+                        </div>
+                        <div class="param-row input-row">
+                            <label for="input-ktransit" title="Rate of movement past absorption window">GI Transit Rate k<sub>tr</sub> (hr⁻¹)</label>
+                            <input type="number" id="input-ktransit" class="pk-input" value="0.6" step="0.1">
+                        </div>
+                        
+                        <div class="param-divider"></div>
+                        <div class="param-row"><span class="highlight">Effective Bioavailability (F)</span> <strong id="f-value" class="highlight">--%</strong></div>
+                        <div class="param-row"><span>C<sub>max</sub></span> <strong id="cmax-value">-- ng/mL</strong></div>
+                        <div class="param-row"><span>T<sub>max</sub></span> <strong id="tmax-value">-- hr</strong></div>
+                        <div class="param-row"><span>AUC<sub>0-24h</sub></span> <strong id="auc-value">-- ng·hr/mL</strong></div>
+                    </div>
+                </div>
+
+                <div class="card visualizer-card">
+                    <h2>Physical Form Representation</h2>
+                    <div class="tablet-container" id="tablet-container">
+                        <!-- We use an elliptical shape for Atorvastatin to make it distinct -->
+                        <svg viewBox="0 0 200 120" class="tablet-svg">
+                            <defs>
+                                <linearGradient id="pill-grad" x1="0%" y1="0%" x2="0%" y2="100%">
+                                    <stop offset="0%" stop-color="#ffffff"/>
+                                    <stop offset="100%" stop-color="#ccfbf1"/>
+                                </linearGradient>
+                                <linearGradient id="pill-grad-inner" x1="0%" y1="0%" x2="100%" y2="0%">
+                                    <stop offset="0%" stop-color="#f0fdfa"/>
+                                    <stop offset="50%" stop-color="#99f6e4"/>
+                                    <stop offset="100%" stop-color="#f0fdfa"/>
+                                </linearGradient>
+                                <filter id="shadow">
+                                    <feDropShadow dx="0" dy="6" stdDeviation="6" flood-color="#0f172a" flood-opacity="0.12"/>
+                                </filter>
+                                <filter id="shadow-half">
+                                    <feDropShadow dx="0" dy="4" stdDeviation="4" flood-color="#0f172a" flood-opacity="0.1"/>
+                                </filter>
+                            </defs>
+                            
+                            <!-- Full Tablet Group -->
+                            <g id="full-tablet-group" class="transition-group">
+                                <ellipse cx="100" cy="60" rx="70" ry="35" fill="url(#pill-grad)" filter="url(#shadow)"/>
+                                <line x1="100" y1="25" x2="100" y2="95" stroke="#99f6e4" stroke-width="2" stroke-linecap="round"/>
+                            </g>
+                            
+                            <!-- Broken Tablet Groups (initially hidden) -->
+                            <g id="half-tablet-left" class="transition-group hidden">
+                                <path d="M 98,25 C 60,25 28,40 28,60 C 28,80 60,95 98,95 Z" fill="url(#pill-grad)" filter="url(#shadow-half)"/>
+                                <ellipse cx="98" cy="60" rx="3" ry="35" fill="url(#pill-grad-inner)" stroke="#5eead4" stroke-width="1"/>
+                            </g>
+                            
+                            <g id="half-tablet-right" class="transition-group hidden">
+                                <path d="M 102,25 C 140,25 172,40 172,60 C 172,80 140,95 102,95 Z" fill="url(#pill-grad)" filter="url(#shadow-half)"/>
+                                <ellipse cx="102" cy="60" rx="3" ry="35" fill="url(#pill-grad-inner)" stroke="#5eead4" stroke-width="1"/>
+                            </g>
+                        </svg>
+                    </div>
+                    
+                    <div class="stats-grid">
+                        <div class="stat-item">
+                            <div class="stat-label">Total Surface Area</div>
+                            <div id="sa-indicator" class="stat-value text-emerald">1.00x</div>
+                            <div class="stat-desc">Relative to full tablet</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-label">Dissolution Rate</div>
+                            <div id="diss-indicator" class="stat-value text-teal">Standard</div>
+                            <div class="stat-desc">Driven by surface area</div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section class="right-column">
+                <div class="card chart-card">
+                    <div class="chart-header">
+                        <h2>In Vitro Dissolution Profile</h2>
+                        <p>Noyes-Whitney principles driving drug release.</p>
+                    </div>
+                    <div class="chart-wrapper">
+                        <canvas id="dissolutionChart"></canvas>
+                    </div>
+                </div>
+                
+                <div class="card chart-card">
+                    <div class="chart-header">
+                        <h2>Plasma Concentration-Time Profile</h2>
+                        <p>Includes extensive first-pass metabolism (E<sub>H</sub>) limiting bioavailability.</p>
+                    </div>
+                    <div class="chart-wrapper">
+                        <canvas id="pkChart"></canvas>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+    <script src="app.js"></script>
+</body>
+</html>
