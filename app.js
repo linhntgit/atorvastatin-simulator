@@ -11,7 +11,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const inputVmax = document.getElementById('input-vmax');
     const inputKm = document.getElementById('input-km');
     const inputKtransit = document.getElementById('input-ktransit');
-    const allInputs = [doseSelect, inputVd, inputThalf, inputEh, inputVmax, inputKm, inputKtransit];
+    const inputSaRatio = document.getElementById('input-sa-ratio');
+    const allInputs = [doseSelect, inputVd, inputThalf, inputEh, inputVmax, inputKm, inputKtransit, inputSaRatio];
 
     // SVG Elements
     const fullGroup = document.getElementById('full-tablet-group');
@@ -117,7 +118,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const kd_full_min = kd_full_hr / 60;
         
         // Surface Area increase when broken
-        const sa_ratio = 1.32;
+        const sa_ratio = parseFloat(inputSaRatio.value) || 1.32;
         const kd_broken_hr = kd_full_hr * sa_ratio;
         const kd_broken_min = kd_broken_hr / 60;
 
@@ -240,9 +241,11 @@ document.addEventListener('DOMContentLoaded', () => {
             halfRight.classList.remove('hidden');
             setTimeout(() => { halfLeft.classList.add('active'); halfRight.classList.add('active'); }, 50);
 
+            const sa_ratio = parseFloat(inputSaRatio.value) || 1.32;
+            
             // Stats UI
-            saIndicator.textContent = '1.32x';
-            dissIndicator.textContent = 'Faster (+32%)';
+            saIndicator.textContent = sa_ratio.toFixed(2) + 'x';
+            dissIndicator.textContent = `Faster (+${Math.round((sa_ratio - 1) * 100)}%)`;
             
             // Find max for broken
             let cmax = 0, tmax = 0;
